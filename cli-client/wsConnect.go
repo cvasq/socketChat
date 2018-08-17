@@ -69,28 +69,6 @@ func Connect(g *gocui.Gui) error {
 		}
 	}()
 
-	currentTime := func() string {
-		const layout = "Jan 2 - 3:04pm"
-		now := time.Now()
-		return fmt.Sprintf(now.Format(layout))
-	}
-
-	subscribeLiveTransactions := func() {
-		opMessage := `{"username":"BTC Bot","time":"` + currentTime() + `","data":"Hello, the current price of BTC is $200.55"}`
-		err := s.WriteMessage(websocket.TextMessage, []byte(opMessage))
-		if err != nil {
-			log.Println("Error subscribing to upstream socket:", err)
-			s, _, _ = websocket.DefaultDialer.Dial(u.String(), nil)
-			return
-		}
-	}
-	ticker := time.NewTicker(time.Second * 5)
-	go func() {
-		for _ = range ticker.C {
-			subscribeLiveTransactions()
-		}
-	}()
-
 	// Some UI changes
 	g.SetViewOnTop("intro")
 	time.Sleep(time.Second * 3)

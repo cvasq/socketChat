@@ -17,6 +17,7 @@ func main() {
 
 	http.HandleFunc("/ws", socketChat.websocketHandler)
 
+	go socketChat.subscribeLiveTransactions()
 	go socketChat.handleMessages()
 
 	log.Println("Starting SocketChat Server")

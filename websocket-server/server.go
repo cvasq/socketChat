@@ -114,8 +114,8 @@ func (h *SocketChat) handleMessages() {
 				if err != nil {
 					log.Printf("Client Write Error: %v", err)
 					client.Connection.Close()
+					break
 				}
-				client.Connection.WriteJSON(msg)
 			}
 
 		}
