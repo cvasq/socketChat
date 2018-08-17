@@ -19,30 +19,35 @@ type Message struct {
 
 type Client struct {
 	Username   string
-	Connection websocket.Conn
-	Status	bool
+	Connection *websocket.Conn
+	Status     bool
 }
 
 type SocketChat struct {
-	//clients   map[*websocket.Conn]bool
 	clients   []*Client
 	broadcast chan Message
 }
 
-func createClient(w websocket.Conn) *Client {
+func createClient(w *websocket.Conn, name string) *Client {
 	client := &Client{
-		Username: "user",
+		Username:   name,
 		Connection: w,
-		Status: true,
-
+		Status:     true,
 	}
+	return client
 }
 
 func createSocketChat() *SocketChat {
-	sockerChat := &SocketChat{
-		clients:   []*Client,
+	socketChat := &SocketChat{
+		clients:   make([]*Client, 0),
 		broadcast: make(chan Message),
 	}
+	return socketChat
+}
+
+// Remove disconnected client from chat
+func (h *SocketChat) Remove(i int) {
+	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
 
 var wsUpgrader = websocket.Upgrader{}
@@ -54,24 +59,13 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	defer ws.Close()
+
 	randomName := randomdata.SillyName()
 
-	message := Message{}
-	message.Type = "new-user"
-	message.Username = randomName
-	const layout = "Jan 2 - 3:04pm"
-	now := time.Now()
-	message.Time = fmt.Sprintf(now.Format(layout))
-	message.Data = fmt.Sprintf("%v", "registered")
+	newClient := createClient(ws, randomName)
 
-	h.broadcast <- message
-
-	newClient := new(Client)
-	newClient.Username = randomName
-	newClient.Connection = make(map[*websocket.Conn]bool)
-	newClient.Connection[ws] = true
 	log.Println("Adding new client! ", newClient.Username)
-	h.clients = append(h.clients, *newClient)
+	h.clients = append(h.clients, newClient)
 
 	go func() {
 		for {
@@ -85,6 +79,7 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			message.Data = fmt.Sprintf("%v", len(h.clients))
 			log.Println("Sedning message")
 			h.broadcast <- message
+			log.Println("Users", h.clients)
 			time.Sleep(5 * time.Second)
 		}
 	}()
@@ -95,9 +90,10 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("error: %v", err)
-			for _, v := range h.clients {
+			for i, v := range h.clients {
 				log.Println("Removing: ", v.Username)
-				delete(v.Connection, ws)
+				h.Remove(i)
+
 			}
 			break
 		}
@@ -114,17 +110,14 @@ func (h *SocketChat) handleMessages() {
 			for _, client := range h.clients {
 
 				log.Println("<-h.broadcast received:", msg)
-				for k := range client.Connection {
-					err := k.WriteJSON(msg)
-					if err != nil {
-						log.Printf("Client Write Error: %v", err)
-						k.Close()
-						delete(client.Connection, k)
-					}
-					k.WriteJSON(msg)
+				err := client.Connection.WriteJSON(msg)
+				if err != nil {
+					log.Printf("Client Write Error: %v", err)
+					client.Connection.Close()
 				}
-
+				client.Connection.WriteJSON(msg)
 			}
+
 		}
 	}
 }
