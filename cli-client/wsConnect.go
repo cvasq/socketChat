@@ -32,12 +32,15 @@ func Disconnect(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-var send = make(chan string)
+var send = make(chan Message)
 
 // Send message
 func Send(g *gocui.Gui, v *gocui.View) error {
-	send <- v.Buffer()
-	send <- "test"
+	message := Message{}
+	message.Type = "user-message"
+	message.Data = strings.TrimSuffix(v.Buffer(), "\n")
+
+	send <- message
 	g.Update(func(g *gocui.Gui) error {
 		v.Clear()
 		v.SetCursor(0, 0)
@@ -123,7 +126,7 @@ func Connect(g *gocui.Gui) error {
 				default:
 
 					g.Update(func(g *gocui.Gui) error {
-						fmt.Fprintln(messagesView, msg)
+						fmt.Fprintln(messagesView, fmt.Sprintf("%v: %v", msg.Username, msg.Data))
 						return nil
 					})
 				}

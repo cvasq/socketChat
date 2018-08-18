@@ -109,6 +109,7 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("error reading JSON: %v", err)
 			break
 		}
+		msg.Username = randomName
 		// Send the newly received message to the broadcast channel
 		//fmt.Println(msg)
 		h.broadcast <- msg
