@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -36,6 +37,7 @@ var send = make(chan string)
 // Send message
 func Send(g *gocui.Gui, v *gocui.View) error {
 	send <- v.Buffer()
+	send <- "test"
 	g.Update(func(g *gocui.Gui) error {
 		v.Clear()
 		v.SetCursor(0, 0)
@@ -69,6 +71,21 @@ func Connect(g *gocui.Gui) error {
 		}
 	}()
 
+	go func() {
+		for {
+			select {
+			case m := <-send:
+				err := s.WriteJSON(m)
+				if err != nil {
+					log.Println("Error subscribing to upstream socket:", err)
+					return
+				}
+			default:
+
+			}
+		}
+	}()
+
 	// Some UI changes
 	g.SetViewOnTop("intro")
 	time.Sleep(time.Second * 3)
@@ -88,16 +105,18 @@ func Connect(g *gocui.Gui) error {
 			select {
 			case msg := <-listen:
 				switch {
-				case msg.Type == "user-count":
+				case msg.Type == "client-list":
+
 					g.Update(func(g *gocui.Gui) error {
-						usersView.Title = fmt.Sprintf(" %v users: ", msg.Data)
+						usersView.Title = fmt.Sprintf(" %v users: ",
+							len(strings.Fields(msg.Data)))
+						usersView.Clear()
+						fmt.Fprintln(usersView, msg.Data)
 						return nil
 					})
-				case msg.Type == "new-user":
+				case msg.Type == "user-enter":
 					g.Update(func(g *gocui.Gui) error {
-						//usersView.Title = fmt.Sprintf(" %d users: ", clientsCount)
-						usersView.Clear()
-						fmt.Fprintln(usersView, msg.Username)
+						fmt.Fprintln(messagesView, msg.Data)
 						return nil
 					})
 

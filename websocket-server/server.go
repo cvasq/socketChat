@@ -47,6 +47,7 @@ func createSocketChat() *SocketChat {
 
 // Remove disconnected client from chat
 func (h *SocketChat) Remove(i int) {
+	log.Println("Attempting to remove client...")
 	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
 
@@ -67,16 +68,32 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Adding new client! ", newClient.Username)
 	h.clients = append(h.clients, newClient)
 
+	greeting := Message{}
+	greeting.Type = "user-enter"
+	greeting.Username = randomName
+	const layout = "Jan 2 - 3:04pm"
+	now := time.Now()
+	greeting.Time = fmt.Sprintf(now.Format(layout))
+	greeting.Data = fmt.Sprintf("[+] User %v has entered", randomName)
+	h.broadcast <- greeting
+
 	go func() {
 		for {
 			//m := `{"type": "user-count", "username":"system","time":"now","message":"3"}`
 			message := Message{}
-			message.Type = "user-count"
+			message.Type = "client-list"
 			message.Username = "system"
 			const layout = "Jan 2 - 3:04pm"
 			now := time.Now()
 			message.Time = fmt.Sprintf(now.Format(layout))
-			message.Data = fmt.Sprintf("%v", len(h.clients))
+			//message.Data = fmt.Sprintf("%v", len(h.clients))
+
+			var clientList string
+			for _, client := range h.clients {
+				clientList += client.Username + "\n"
+			}
+			message.Data = clientList
+
 			log.Println("Sedning message")
 			h.broadcast <- message
 			log.Println("Users", h.clients)
@@ -89,12 +106,7 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		// Accept JSON mapped to Message struct
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("error: %v", err)
-			for i, v := range h.clients {
-				log.Println("Removing: ", v.Username)
-				h.Remove(i)
-
-			}
+			log.Printf("error reading JSON: %v", err)
 			break
 		}
 		// Send the newly received message to the broadcast channel
@@ -107,13 +119,14 @@ func (h *SocketChat) handleMessages() {
 	for {
 		select {
 		case msg := <-h.broadcast:
-			for _, client := range h.clients {
+			for i, client := range h.clients {
 
 				log.Println("<-h.broadcast received:", msg)
 				err := client.Connection.WriteJSON(msg)
 				if err != nil {
 					log.Printf("Client Write Error: %v", err)
 					client.Connection.Close()
+					h.Remove(i)
 					break
 				}
 			}
