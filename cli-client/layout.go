@@ -7,8 +7,8 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
-func banner() string {
-	b, err := ioutil.ReadFile("ascii.txt")
+func introBanner() string {
+	b, err := ioutil.ReadFile("banner.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -28,7 +28,7 @@ func Layout(g *gocui.Gui) error {
 		}
 		intro.Autoscroll = true
 		intro.Wrap = true
-		fmt.Fprintf(intro, "\n\n\n\n\n\n\n\t\t\t\t%v", banner())
+		fmt.Fprintf(intro, "%v", introBanner())
 		fmt.Fprintf(intro, "\tGenerating random username...")
 	}
 
@@ -36,7 +36,7 @@ func Layout(g *gocui.Gui) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		users.Title = " Online Users "
+		users.Title = " Users Online "
 		users.Autoscroll = false
 		users.Wrap = true
 	}

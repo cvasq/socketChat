@@ -24,9 +24,10 @@ var done = make(chan interface{})
 
 // Send message on pressing enter key
 func Send(g *gocui.Gui, v *gocui.View) error {
-	message := Message{}
-	message.Type = "user-message"
-	message.Data = strings.TrimSuffix(v.Buffer(), "\n")
+	message := Message{
+		Type: "user-message",
+		Data: strings.TrimSuffix(v.Buffer(), "\n"),
+	}
 	var err error
 	select {
 	case <-done:
@@ -43,61 +44,63 @@ func Send(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-// Connect to the server, create new reader, writer set client name
+// Connect to the Websocket server and start sending/receiving messages
 func Connect(g *gocui.Gui) error {
 
 	u := url.URL{Scheme: "ws", Host: "localhost", Path: "/ws"}
 	s, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		log.Fatal("Error dialing:", err)
 	}
 
+	// Receive messages from server
 	go func() {
 		for {
 			receivedData := &Message{}
 			err := s.ReadJSON(receivedData)
 			if err != nil {
-				log.Println("read:", err)
+				log.Println("Error receiving message:", err)
 				return
 			}
-			// Send the newly received message to the broadcast channel
 			listen <- receivedData
 		}
 	}()
 
+	// Sends user message to Websocket Connection
 	go func() {
 		for {
 			select {
 			case m := <-send:
 				err := s.WriteJSON(m)
 				if err != nil {
-					log.Println("Error subscribing to upstream socket:", err)
+					log.Println("Error sending message:", err)
 					return
 				}
 			default:
-
 			}
 		}
 	}()
-
 	// Some UI changes
 	g.SetViewOnTop("intro")
-	time.Sleep(time.Second * 3)
-
-	g.SetViewOnTop("messages")
-	g.SetViewOnTop("users")
-	g.SetViewOnTop("input")
-	g.SetCurrentView("input")
-	// Wait for server messages in new goroutine
 	messagesView, _ := g.View("messages")
 	usersView, _ := g.View("users")
 
+	go func() {
+		time.Sleep(1 * time.Second)
+		g.SetViewOnBottom("intro")
+		g.SetViewOnTop("messages")
+		g.SetViewOnTop("users")
+		g.SetViewOnTop("input")
+		g.SetCurrentView("input")
+	}()
+	// Wait for server messages in new goroutine
 	go func() {
 	loop:
 		for {
 			select {
 			case msg := <-listen:
 				switch {
+				//Client list managed server side
 				case msg.Type == "client-list":
 
 					g.Update(func(g *gocui.Gui) error {
@@ -107,6 +110,7 @@ func Connect(g *gocui.Gui) error {
 						fmt.Fprintln(usersView, msg.Data)
 						return nil
 					})
+
 				case msg.Type == "user-enter":
 					g.Update(func(g *gocui.Gui) error {
 						fmt.Fprintln(messagesView, msg.Data)
