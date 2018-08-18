@@ -28,15 +28,24 @@ func Layout(g *gocui.Gui) error {
 		}
 		intro.Autoscroll = true
 		intro.Wrap = true
-		fmt.Fprintf(intro, "%v", introBanner())
+		fmt.Fprintf(intro, "\n\n\n\n\n\n\n\t\t\t\t%v", introBanner())
 		fmt.Fprintf(intro, "\tGenerating random username...")
 	}
 
-	if users, err := g.SetView("users", 0, 0, 20, maxY-1); err != nil {
+	if users, err := g.SetView("users", 0, 0, 20, maxY/2-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		users.Title = " Users Online "
+		users.Autoscroll = false
+		users.Wrap = true
+	}
+
+	if users, err := g.SetView("bots", 0, maxY/2, 20, maxY-1); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		users.Title = " Bots Online "
 		users.Autoscroll = false
 		users.Wrap = true
 	}

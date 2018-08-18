@@ -80,6 +80,7 @@ func Connect(g *gocui.Gui) error {
 			}
 		}
 	}()
+
 	// Some UI changes
 	g.SetViewOnTop("intro")
 	messagesView, _ := g.View("messages")
@@ -104,10 +105,10 @@ func Connect(g *gocui.Gui) error {
 				case msg.Type == "client-list":
 
 					g.Update(func(g *gocui.Gui) error {
-						usersView.Title = fmt.Sprintf(" %v users: ",
+						usersView.Title = fmt.Sprintf(" %v Users Online ",
 							len(strings.Fields(msg.Data)))
 						usersView.Clear()
-						fmt.Fprintln(usersView, msg.Data)
+						fmt.Fprintln(usersView, "\n"+msg.Data)
 						return nil
 					})
 

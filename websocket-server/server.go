@@ -65,7 +65,7 @@ func (h *SocketChat) trackActiveClients() {
 
 			var clientList string
 			for _, client := range h.clients {
-				clientList += client.Username + "\n"
+				clientList += "* " + client.Username + "\n"
 			}
 			message.Data = clientList
 
