@@ -28,6 +28,8 @@ type SocketChat struct {
 	broadcast chan Message
 }
 
+var done = make(chan interface{})
+
 func createClient(w *websocket.Conn, name string) *Client {
 	client := &Client{
 		Username:   name,
@@ -48,6 +50,7 @@ func createSocketChat() *SocketChat {
 // Remove disconnected client from chat
 func (h *SocketChat) Remove(i int) {
 	log.Println("Attempting to remove client...")
+	close(done)
 	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
 
@@ -79,14 +82,12 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		for {
-			//m := `{"type": "user-count", "username":"system","time":"now","message":"3"}`
 			message := Message{}
 			message.Type = "client-list"
 			message.Username = "system"
 			const layout = "Jan 2 - 3:04pm"
 			now := time.Now()
 			message.Time = fmt.Sprintf(now.Format(layout))
-			//message.Data = fmt.Sprintf("%v", len(h.clients))
 
 			var clientList string
 			for _, client := range h.clients {

@@ -1,22 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
-	"net"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jroimartin/gocui"
-)
-
-var (
-	connection net.Conn
-	reader     *bufio.Reader
-	writer     *bufio.Writer
 )
 
 type Message struct {
@@ -26,21 +18,22 @@ type Message struct {
 	Data     string `json:"data"`
 }
 
-// Disconnect from chat and close
-func Disconnect(g *gocui.Gui, v *gocui.View) error {
-	connection.Close()
-	return gocui.ErrQuit
-}
-
 var send = make(chan Message)
+var listen = make(chan *Message)
+var done = make(chan interface{})
 
-// Send message
+// Send message on pressing enter key
 func Send(g *gocui.Gui, v *gocui.View) error {
 	message := Message{}
 	message.Type = "user-message"
 	message.Data = strings.TrimSuffix(v.Buffer(), "\n")
-
-	send <- message
+	var err error
+	select {
+	case <-done:
+		return err
+	default:
+		send <- message
+	}
 	g.Update(func(g *gocui.Gui) error {
 		v.Clear()
 		v.SetCursor(0, 0)
@@ -58,8 +51,6 @@ func Connect(g *gocui.Gui) error {
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
-
-	listen := make(chan *Message)
 
 	go func() {
 		for {
@@ -100,7 +91,6 @@ func Connect(g *gocui.Gui) error {
 	// Wait for server messages in new goroutine
 	messagesView, _ := g.View("messages")
 	usersView, _ := g.View("users")
-	done := make(chan interface{})
 
 	go func() {
 	loop:
@@ -137,4 +127,11 @@ func Connect(g *gocui.Gui) error {
 		}
 	}()
 	return nil
+}
+
+// Disconnect from chat and close
+func Disconnect(g *gocui.Gui, v *gocui.View) error {
+	close(listen)
+	close(done)
+	return gocui.ErrQuit
 }
