@@ -15,7 +15,7 @@ Chat client has a console user interface, connects to our socketchat server via 
 
 ## Packages
 
-Built using the gorilla/websocket package and jroimartin/gocui for the terminal UI
+Built using the [gorilla/websocket](https://github.com/gorilla/websocket) package and [jroimartin/gocui](https://github.com/jroimartin/gocui) for the terminal UI
 
 
 
