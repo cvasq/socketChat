@@ -56,22 +56,24 @@ var wsUpgrader = websocket.Upgrader{}
 func (h *SocketChat) trackActiveClients() {
 	go func() {
 		for {
-			message := Message{}
-			message.Type = "client-list"
-			message.Username = "system"
-			const layout = "Jan 2 - 3:04pm"
-			now := time.Now()
-			message.Time = fmt.Sprintf(now.Format(layout))
 
 			var clientList string
 			for _, client := range h.clients {
-				clientList += "* " + client.Username + "\n"
+				clientList += client.Username + "\n"
 			}
-			message.Data = clientList
 
-			log.Println("Sedning message")
+			const layout = "Jan 2 - 3:04pm"
+			now := time.Now()
+
+			message := Message{
+				Type:     "client-list",
+				Username: "system",
+				Time:     fmt.Sprintf(now.Format(layout)),
+				Data:     clientList,
+			}
+
 			h.broadcast <- message
-			log.Println("Users", h.clients)
+
 			time.Sleep(4 * time.Second)
 		}
 	}()
