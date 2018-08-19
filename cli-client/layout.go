@@ -22,7 +22,7 @@ func Layout(g *gocui.Gui) error {
 	g.FgColor = gocui.ColorGreen
 	maxX, maxY := g.Size()
 
-	if intro, err := g.SetView("intro", 0, 0, maxX-40, maxY-3); err != nil {
+	if intro, err := g.SetView("intro", 0, 0, maxX-41, maxY-2); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -50,7 +50,7 @@ func Layout(g *gocui.Gui) error {
 		users.Wrap = true
 	}
 
-	if messages, err := g.SetView("messages", 21, 0, maxX-40, maxY-5); err != nil {
+	if messages, err := g.SetView("messages", 21, 0, maxX-41, maxY-7); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -59,7 +59,8 @@ func Layout(g *gocui.Gui) error {
 		messages.Wrap = true
 	}
 
-	if input, err := g.SetView("input", 21, maxY-6, maxX-40, maxY-2); err != nil {
+	// 48 should be 41. testing
+	if input, err := g.SetView("input", 21, maxY-6, maxX-41, maxY-2); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}

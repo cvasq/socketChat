@@ -86,14 +86,12 @@ func Connect(g *gocui.Gui) error {
 	messagesView, _ := g.View("messages")
 	usersView, _ := g.View("users")
 
-	go func() {
-		time.Sleep(1 * time.Second)
-		g.SetViewOnBottom("intro")
-		g.SetViewOnTop("messages")
-		g.SetViewOnTop("users")
-		g.SetViewOnTop("input")
-		g.SetCurrentView("input")
-	}()
+	time.Sleep(3 * time.Second)
+	g.SetViewOnTop("messages")
+	g.SetViewOnTop("users")
+	g.SetViewOnTop("input")
+	g.SetViewOnTop("bots")
+	g.SetCurrentView("input")
 	// Wait for server messages in new goroutine
 	go func() {
 	loop:
@@ -105,7 +103,7 @@ func Connect(g *gocui.Gui) error {
 				case msg.Type == "client-list":
 
 					g.Update(func(g *gocui.Gui) error {
-						usersView.Title = fmt.Sprintf(" %v Users Online ",
+						usersView.Title = fmt.Sprintf(" %v User(s) Online ",
 							len(strings.Fields(msg.Data)))
 						usersView.Clear()
 						fmt.Fprintln(usersView, "\n"+msg.Data)
