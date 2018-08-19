@@ -99,7 +99,8 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SocketChat) handleMessages() {
-	btcCmd, _ := regexp.Compile("(^[/](btc$))")
+	// Matches a "/btc" command
+	cmd, _ := regexp.Compile("(^[/](btc$))")
 
 	for {
 		select {
@@ -107,10 +108,14 @@ func (h *SocketChat) handleMessages() {
 			//Debug
 			//log.Println("<-h.broadcast received:", msg)
 
-			// Check whether we recived a command
-			if btcCmd.MatchString(msg.Data) == true {
+			// Check whether we received a command
+			if cmd.MatchString(msg.Data) == true {
+
 				h.triggerBot <- "btc-bot"
+
+				// Broadcast message if cmd regex does not match
 			} else {
+
 				for clientIndex, client := range h.clients {
 					err := client.Connection.WriteJSON(msg)
 					if err != nil {
@@ -120,6 +125,7 @@ func (h *SocketChat) handleMessages() {
 						break
 					}
 				}
+
 			}
 
 		}
