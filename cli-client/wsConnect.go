@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jroimartin/gocui"
@@ -28,10 +27,10 @@ func Send(g *gocui.Gui, v *gocui.View) error {
 		Type: "user-message",
 		Data: strings.TrimSuffix(v.Buffer(), "\n"),
 	}
-	var err error
+
 	select {
 	case <-done:
-		return err
+		return nil
 	default:
 		send <- message
 	}
@@ -70,6 +69,8 @@ func Connect(g *gocui.Gui) error {
 	go func() {
 		for {
 			select {
+			case <-done:
+				break
 			case m := <-send:
 				err := s.WriteJSON(m)
 				if err != nil {
@@ -80,17 +81,15 @@ func Connect(g *gocui.Gui) error {
 		}
 	}()
 
-	// Some UI changes
-	g.SetViewOnTop("intro")
 	messagesView, _ := g.View("messages")
 	usersView, _ := g.View("users")
 
-	time.Sleep(3 * time.Second)
 	g.SetViewOnTop("messages")
 	g.SetViewOnTop("users")
 	g.SetViewOnTop("input")
 	g.SetViewOnTop("bots")
 	g.SetCurrentView("input")
+
 	// Wait for server messages in new goroutine
 	go func() {
 	loop:
@@ -111,14 +110,14 @@ func Connect(g *gocui.Gui) error {
 
 				case msg.Type == "user-enter":
 					g.Update(func(g *gocui.Gui) error {
-						fmt.Fprintln(messagesView, msg.Data)
+						fmt.Fprintln(messagesView, fmt.Sprintf("\u001b[36;1m[%v] %v\033[0m", msg.Time, msg.Data))
 						return nil
 					})
 
 				default:
 
 					g.Update(func(g *gocui.Gui) error {
-						fmt.Fprintln(messagesView, fmt.Sprintf("%v: %v", msg.Username, msg.Data))
+						fmt.Fprintln(messagesView, fmt.Sprintf("[%v] %v: %v", msg.Time, msg.Username, msg.Data))
 						return nil
 					})
 				}
@@ -132,7 +131,6 @@ func Connect(g *gocui.Gui) error {
 
 // Disconnect from chat and close
 func Disconnect(g *gocui.Gui, v *gocui.View) error {
-	close(listen)
 	close(done)
 	return gocui.ErrQuit
 }

@@ -40,11 +40,6 @@ func (h *SocketChat) subscribeLiveTransactions() {
 	go func() {
 		ticker := time.NewTicker(time.Second * 60)
 		for _ = range ticker.C {
-			currentTime := func() string {
-				const layout = "Jan 2 - 3:04pm"
-				now := time.Now()
-				return fmt.Sprintf(now.Format(layout))
-			}
 			message := Message{}
 			message.Type = "bot-message"
 			message.Username = "BTC Bot"

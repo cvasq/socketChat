@@ -1,36 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-
 	"github.com/jroimartin/gocui"
 )
 
-func introBanner() string {
-	b, err := ioutil.ReadFile("banner.txt")
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
-}
-
-// Layout creates chat ui
+// Layout defines the UI parameters
 func Layout(g *gocui.Gui) error {
 
 	g.Cursor = true
 	g.FgColor = gocui.ColorGreen
 	maxX, maxY := g.Size()
-
-	if intro, err := g.SetView("intro", 0, 0, maxX-41, maxY-2); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		intro.Autoscroll = true
-		intro.Wrap = true
-		fmt.Fprintf(intro, "\n\n\n\n\n\n\n\t\t\t\t%v", introBanner())
-		fmt.Fprintf(intro, "\tGenerating random username...")
-	}
 
 	if users, err := g.SetView("users", 0, 0, 20, maxY/2-1); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -59,7 +38,6 @@ func Layout(g *gocui.Gui) error {
 		messages.Wrap = true
 	}
 
-	// 48 should be 41. testing
 	if input, err := g.SetView("input", 21, maxY-6, maxX-41, maxY-2); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err

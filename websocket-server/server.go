@@ -28,6 +28,12 @@ type SocketChat struct {
 	broadcast chan Message
 }
 
+func currentTime() string {
+	const layout = "3:04pm"
+	now := time.Now()
+	return fmt.Sprintf(now.Format(layout))
+}
+
 func createClient(w *websocket.Conn, name string) *Client {
 	client := &Client{
 		Username:   name,
@@ -46,40 +52,15 @@ func createSocketChat() *SocketChat {
 }
 
 // Remove disconnected client from chat
-func (h *SocketChat) Remove(i int) {
+func (h *SocketChat) removeClient(i int) {
 	log.Println("Attempting to remove client...")
 	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
 
 var wsUpgrader = websocket.Upgrader{}
 
-func (h *SocketChat) trackActiveClients() {
-	go func() {
-		for {
-
-			var clientList string
-			for _, client := range h.clients {
-				clientList += "-" + client.Username + "\n"
-			}
-
-			const layout = "Jan 2 - 3:04pm"
-			now := time.Now()
-
-			message := Message{
-				Type:     "client-list",
-				Username: "system",
-				Time:     fmt.Sprintf(now.Format(layout)),
-				Data:     clientList,
-			}
-
-			h.broadcast <- message
-
-			time.Sleep(4 * time.Second)
-		}
-	}()
-}
-
 func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
+
 	// Upgrade the initial request to a Websocket
 	ws, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -87,33 +68,35 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
+	// Genrate random username
 	randomName := randomdata.SillyName()
-
 	newClient := createClient(ws, randomName)
 
-	log.Println("Adding new client! ", newClient.Username)
+	log.Printf("Adding new client %v from %v \n", newClient.Username, ws.RemoteAddr())
 	h.clients = append(h.clients, newClient)
 
-	greeting := Message{}
-	greeting.Type = "user-enter"
-	greeting.Username = randomName
-	const layout = "Jan 2 - 3:04pm"
-	now := time.Now()
-	greeting.Time = fmt.Sprintf(now.Format(layout))
-	greeting.Data = fmt.Sprintf("[+] User %v has entered", randomName)
+	greeting := Message{
+		Type:     "user-enter",
+		Username: randomName,
+		Time:     currentTime(),
+		Data:     fmt.Sprintf("++ User %v has entered", randomName),
+	}
+
 	h.broadcast <- greeting
 
 	for {
-		var msg Message
+
 		// Accept JSON mapped to Message struct
+		var msg Message
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("error reading JSON: %v", err)
+			log.Printf("Error reading JSON: %v", err)
 			break
 		}
 		msg.Username = randomName
+		msg.Time = currentTime()
+
 		// Send the newly received message to the broadcast channel
-		//fmt.Println(msg)
 		h.broadcast <- msg
 	}
 }
@@ -122,19 +105,45 @@ func (h *SocketChat) handleMessages() {
 	for {
 		select {
 		case msg := <-h.broadcast:
-			log.Println("<-h.broadcast received:", msg)
 
-			for i, client := range h.clients {
+			//Debug
+			//log.Println("<-h.broadcast received:", msg)
+
+			for clientIndex, client := range h.clients {
 
 				err := client.Connection.WriteJSON(msg)
 				if err != nil {
 					log.Printf("Client Write Error: %v", err)
 					client.Connection.Close()
-					h.Remove(i)
+					h.removeClient(clientIndex)
 					break
 				}
 			}
 
 		}
 	}
+}
+
+func (h *SocketChat) trackActiveClients() {
+	go func() {
+		for {
+
+			var clientList string
+			for _, client := range h.clients {
+				clientList += client.Username + "\n"
+			}
+
+			message := Message{
+				Type:     "client-list",
+				Username: "system",
+				Time:     currentTime(),
+				Data:     clientList,
+			}
+
+			if clientList != "" {
+				h.broadcast <- message
+			}
+			time.Sleep(2 * time.Second)
+		}
+	}()
 }
