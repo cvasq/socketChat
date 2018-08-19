@@ -1,16 +1,12 @@
 package main
 
 import (
-	"github.com/jroimartin/gocui"
 	"log"
-	"net/http"
-	_ "net/http/pprof"
+
+	"github.com/jroimartin/gocui"
 )
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
 
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {

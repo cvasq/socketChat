@@ -76,7 +76,6 @@ func Connect(g *gocui.Gui) error {
 					log.Println("Error sending message:", err)
 					return
 				}
-			default:
 			}
 		}
 	}()
@@ -125,7 +124,6 @@ func Connect(g *gocui.Gui) error {
 				}
 			case <-done:
 				break loop
-			default:
 			}
 		}
 	}()
