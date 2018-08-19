@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 
 	randomdata "github.com/Pallinder/go-randomdata"
@@ -24,8 +25,9 @@ type Client struct {
 }
 
 type SocketChat struct {
-	clients   []*Client
-	broadcast chan Message
+	clients    []*Client
+	broadcast  chan Message
+	triggerBot chan string
 }
 
 func currentTime() string {
@@ -45,16 +47,11 @@ func createClient(w *websocket.Conn, name string) *Client {
 
 func createSocketChat() *SocketChat {
 	socketChat := &SocketChat{
-		clients:   make([]*Client, 0),
-		broadcast: make(chan Message),
+		clients:    make([]*Client, 0),
+		broadcast:  make(chan Message),
+		triggerBot: make(chan string),
 	}
 	return socketChat
-}
-
-// Remove disconnected client from chat
-func (h *SocketChat) removeClient(i int) {
-	log.Println("Attempting to remove client...")
-	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
 
 var wsUpgrader = websocket.Upgrader{}
@@ -102,21 +99,26 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SocketChat) handleMessages() {
+	btcCmd, _ := regexp.Compile("(^[/](btc$))")
+
 	for {
 		select {
 		case msg := <-h.broadcast:
-
 			//Debug
 			//log.Println("<-h.broadcast received:", msg)
 
-			for clientIndex, client := range h.clients {
-
-				err := client.Connection.WriteJSON(msg)
-				if err != nil {
-					log.Printf("Client Write Error: %v", err)
-					client.Connection.Close()
-					h.removeClient(clientIndex)
-					break
+			// Check whether we recived a command
+			if btcCmd.MatchString(msg.Data) == true {
+				h.triggerBot <- "btc-bot"
+			} else {
+				for clientIndex, client := range h.clients {
+					err := client.Connection.WriteJSON(msg)
+					if err != nil {
+						log.Printf("Client Write Error: %v", err)
+						client.Connection.Close()
+						h.removeClient(clientIndex, client.Username)
+						break
+					}
 				}
 			}
 
@@ -146,4 +148,10 @@ func (h *SocketChat) trackActiveClients() {
 			time.Sleep(2 * time.Second)
 		}
 	}()
+}
+
+// Remove disconnected client from chat
+func (h *SocketChat) removeClient(i int, client string) {
+	log.Println("Removing client:", client)
+	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
