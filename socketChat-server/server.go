@@ -65,21 +65,28 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
+	// Move this to new file - newClient.go
 	// Genrate random username
 	randomName := randomdata.SillyName()
 	newClient := createClient(ws, randomName)
-
 	log.Printf("Adding new client %v from %v \n", newClient.Username, ws.RemoteAddr())
 	h.clients = append(h.clients, newClient)
-
 	greeting := Message{
 		Type:     "user-enter",
 		Username: randomName,
 		Time:     currentTime(),
 		Data:     fmt.Sprintf("++ User %v has entered", randomName),
 	}
-
 	h.broadcast <- greeting
+
+	// Move this to a central bot manager file
+	botListing := Message{
+		Type:     "bot-listing",
+		Username: "system",
+		Time:     currentTime(),
+		Data:     "btc-bot",
+	}
+	h.broadcast <- botListing
 
 	for {
 
@@ -132,6 +139,7 @@ func (h *SocketChat) handleMessages() {
 	}
 }
 
+// Move to new clients.go file
 func (h *SocketChat) trackActiveClients() {
 	go func() {
 		for {
@@ -156,6 +164,7 @@ func (h *SocketChat) trackActiveClients() {
 	}()
 }
 
+// Move to new clients.go file
 // Remove disconnected client from chat
 func (h *SocketChat) removeClient(i int, client string) {
 	log.Println("Removing client:", client)

@@ -44,12 +44,12 @@ func Send(g *gocui.Gui, v *gocui.View) error {
 }
 
 // Connect to the Websocket server and start sending/receiving messages
-func Connect(g *gocui.Gui) error {
+func Connect(g *gocui.Gui, socketchatServerURL *string) error {
 
-	u := url.URL{Scheme: "ws", Host: "localhost", Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: *socketchatServerURL, Path: "/ws"}
 	s, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("Error dialing:", err)
+		log.Fatal("Unable to establish connection:", err)
 	}
 
 	// Receive messages from server
@@ -72,17 +72,21 @@ func Connect(g *gocui.Gui) error {
 			case <-done:
 				break
 			case m := <-send:
-				err := s.WriteJSON(m)
-				if err != nil {
-					log.Println("Error sending message:", err)
-					return
+				if m.Data != "" {
+					err := s.WriteJSON(m)
+					if err != nil {
+						log.Println("Error sending message:", err)
+						return
+					}
 				}
+
 			}
 		}
 	}()
 
 	messagesView, _ := g.View("messages")
 	usersView, _ := g.View("users")
+	botView, _ := g.View("bots")
 
 	g.SetViewOnTop("messages")
 	g.SetViewOnTop("users")
@@ -99,7 +103,6 @@ func Connect(g *gocui.Gui) error {
 				switch {
 				//Client list managed server side
 				case msg.Type == "client-list":
-
 					g.Update(func(g *gocui.Gui) error {
 						usersView.Title = fmt.Sprintf(" %v User(s) Online ",
 							len(strings.Fields(msg.Data)))
@@ -107,15 +110,18 @@ func Connect(g *gocui.Gui) error {
 						fmt.Fprintln(usersView, "\n"+msg.Data)
 						return nil
 					})
-
+				case msg.Type == "bot-listing":
+					g.Update(func(g *gocui.Gui) error {
+						usersView.Clear()
+						fmt.Fprintln(botView, "\n"+msg.Data)
+						return nil
+					})
 				case msg.Type == "user-enter":
 					g.Update(func(g *gocui.Gui) error {
 						fmt.Fprintln(messagesView, fmt.Sprintf("\u001b[36;1m[%v] %v\033[0m", msg.Time, msg.Data))
 						return nil
 					})
-
 				default:
-
 					g.Update(func(g *gocui.Gui) error {
 						fmt.Fprintln(messagesView, fmt.Sprintf("[%v] %v: %v", msg.Time, msg.Username, msg.Data))
 						return nil

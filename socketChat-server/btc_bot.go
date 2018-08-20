@@ -20,30 +20,32 @@ type CurrencyList struct {
 
 func getPrice() Message {
 
+	priceMessage := Message{}
+	priceMessage.Type = "bot-message"
+	priceMessage.Username = "BTC Bot"
+	priceMessage.Time = currentTime()
+
 	resp, err := http.Get("https://blockchain.info/ticker")
 	if err != nil {
 		log.Println(err)
+		return priceMessage
 	}
 
 	currentPrice := CurrencyList{}
 	err = json.NewDecoder(resp.Body).Decode(&currentPrice)
 	defer resp.Body.Close()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	lastPrice := fmt.Sprintf("The current Bitcoin price is $%.2f USD", currentPrice.USD.Last)
 
-	priceMessage := Message{}
-	priceMessage.Type = "bot-message"
-	priceMessage.Username = "BTC Bot"
-	priceMessage.Time = currentTime()
 	priceMessage.Data = lastPrice
 
 	return priceMessage
 }
 
-func (h *SocketChat) subscribeLiveTransactions() {
+func (h *SocketChat) runBtcBot() {
 
 	// Sends Time (tick) to channel every X seconds
 	tickChan := time.NewTicker(time.Second * priceCheckInterval).C

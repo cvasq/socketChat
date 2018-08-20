@@ -9,15 +9,15 @@ import (
 func main() {
 
 	// Set custom port by running with --port PORT_NUM
-	// Default port is 8000
-	httpPort := flag.String("port", "80", "WebSocket Listening Address")
+	// Default port is 9001
+	httpPort := flag.String("port", "9001", "WebSocket Listening Address")
 	flag.Parse()
 
 	socketChat := createSocketChat()
 
 	http.HandleFunc("/ws", socketChat.websocketHandler)
 
-	go socketChat.subscribeLiveTransactions()
+	go socketChat.runBtcBot()
 	go socketChat.trackActiveClients()
 	go socketChat.handleMessages()
 
