@@ -17,9 +17,9 @@ func main() {
 
 	http.HandleFunc("/ws", socketChat.websocketHandler)
 
-	go socketChat.runBtcBot()
 	go socketChat.trackActiveClients()
 	go socketChat.handleMessages()
+	go socketChat.runBtcBot()
 
 	log.Println("Starting SocketChat Server")
 	log.Println("Listening on port: ", *httpPort)

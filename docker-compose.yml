@@ -1,13 +1,13 @@
 version: '3'
 services:
   socketChat-client-cli:
-    image: cvasquez/gotty
+    image: cvasquez/socketchat:cli-client
     environment:
       - TERM=xterm
     command: "--server-address socketChat-server:9001"
     ports:
-        - 8080:8080
+       - 8080:8080
   socketChat-server:
-    image: cvasquez/socketchat-server
+    image: cvasquez/socketchat:server
     expose:
       - "9001"

@@ -110,9 +110,9 @@ func Connect(g *gocui.Gui, socketchatServerURL *string) error {
 						fmt.Fprintln(usersView, "\n"+msg.Data)
 						return nil
 					})
-				case msg.Type == "bot-listing":
+				case msg.Type == "bot-list":
 					g.Update(func(g *gocui.Gui) error {
-						usersView.Clear()
+						botView.Clear()
 						fmt.Fprintln(botView, "\n"+msg.Data)
 						return nil
 					})

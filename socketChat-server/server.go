@@ -79,15 +79,6 @@ func (h *SocketChat) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	h.broadcast <- greeting
 
-	// Move this to a central bot manager file
-	botListing := Message{
-		Type:     "bot-listing",
-		Username: "system",
-		Time:     currentTime(),
-		Data:     "btc-bot",
-	}
-	h.broadcast <- botListing
-
 	for {
 
 		// Accept JSON mapped to Message struct
@@ -113,7 +104,7 @@ func (h *SocketChat) handleMessages() {
 		select {
 		case msg := <-h.broadcast:
 			//Debug
-			//log.Println("<-h.broadcast received:", msg)
+			log.Println("<-h.broadcast received:", msg)
 
 			// Check whether we received a command
 			if cmd.MatchString(msg.Data) == true {
@@ -158,6 +149,14 @@ func (h *SocketChat) trackActiveClients() {
 
 			if clientList != "" {
 				h.broadcast <- message
+
+				botListing := Message{
+					Type:     "bot-list",
+					Username: "system",
+					Time:     currentTime(),
+					Data:     "btc-bot",
+				}
+				h.broadcast <- botListing
 			}
 			time.Sleep(2 * time.Second)
 		}

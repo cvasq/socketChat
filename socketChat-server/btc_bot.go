@@ -47,6 +47,18 @@ func getPrice() Message {
 
 func (h *SocketChat) runBtcBot() {
 
+	go func() {
+		time.Sleep(time.Second * 1)
+		botListing := Message{
+			Type:     "bot-listing",
+			Username: "system",
+			Time:     currentTime(),
+			Data:     "btc-bot",
+		}
+		log.Println("Sending bot listing message")
+		h.broadcast <- botListing
+
+	}()
 	// Sends Time (tick) to channel every X seconds
 	tickChan := time.NewTicker(time.Second * priceCheckInterval).C
 
